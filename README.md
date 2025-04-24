@@ -22,14 +22,19 @@ A real-time monitoring system for mushroom cultivation with sensor data visualiz
 
 1. Create and activate a Python virtual environment:
 ```bash
-python3 -m venv env
+python -m venv env
 source env/bin/activate  # On Windows: env\Scripts\activate
 ```
 
 2. Install Python dependencies:
 ```bash
-pip install fastapi uvicorn websockets numpy pandas
+pip install fastapi uvicorn websockets numpy pandas openai
 ```
+
+3. Set up your OpenAI API key:
+   - Copy `key.template.txt` to `key.txt`
+   - Replace the placeholder with your actual OpenAI API key
+   - Note: `key.txt` is gitignored for security
 
 ### Frontend Setup
 
@@ -89,9 +94,11 @@ The application will be available at:
 
 ## Security Notes
 
-- The application uses CORS middleware for development
-- API keys and sensitive data should be stored in environment variables
-- Production deployment should implement proper security measures
+- API keys are stored in `key.txt` which is gitignored
+- Use `key.template.txt` as a reference for setting up new environments
+- Never commit sensitive credentials to the repository
+- Assistant IDs are configuration values and can be safely committed
+- All file paths are relative for better portability
 
 ## Contributing
 

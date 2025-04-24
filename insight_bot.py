@@ -4,10 +4,14 @@ from openai import OpenAI
 from sensor_handler import read_sensor_data
 
 # Read API key from file
-KEY_PATH = "/Users/leviwheeling/Documents/talk_to_mushrooms/key.txt"
-with open(KEY_PATH, "r") as f:
-    api_key = f.read().strip()
+def get_api_key():
+    try:
+        with open('key.txt', 'r') as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        raise Exception("key.txt not found. Please create it from key.template.txt")
 
+api_key = get_api_key()
 client = OpenAI(api_key=api_key)
 
 # Set the Insight Bot assistant ID (your insight bot)
