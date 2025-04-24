@@ -1,0 +1,194 @@
+/* Global Styles */
+.App {
+  font-family:  Rockwell, 'Rockwell Nova', 'Roboto Slab', 'DejaVu Serif', 'Sitka Small', serif;
+  background: #f7f7f7;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.app-header h1 {
+  color: #333;
+  margin: 0;
+}
+
+.chat-toggle-button {
+  padding: 8px 16px;
+  background-color: #271b7e;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.chat-toggle-button:hover {
+  background-color: #213b6f;
+}
+
+/* Dashboard Layout */
+.dashboard {
+  display: block;
+}
+
+.dashboard.with-chat {
+  display: flex;
+  gap: 20px;
+}
+
+.chat-panel {
+  flex: 1;
+  max-width: 50%;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.content-panel {
+  flex: 1;
+  width: 100%;
+}
+
+/* Sensor Cards */
+.sensor-cards {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.sensor-card {
+  padding: 15px;
+  border-radius: 8px;
+  min-width: 120px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.7s ease, background 0.7s ease;
+  cursor: pointer;
+}
+
+.sensor-card:hover {
+  transform: translateY(-5px);
+}
+
+.sensor-card.temp {
+  background: #e3f2fd;
+  color: #a1520d;
+}
+
+.sensor-card.humidity {
+  background: #e8f5e9;
+  color: #1b1d5e;
+}
+
+.sensor-card.co2 {
+  background: #ffebee;
+  color: #1cb726;
+}
+
+/* Insight Section */
+.insight-container {
+  background: #fff;
+  padding: 20px;
+  margin: 20px auto 0 auto;
+  max-width: 600px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+.insight-container h2 {
+  margin-bottom: 10px;
+}
+
+.insight-box {
+  background: #a09b9b;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.insight-box h3 {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.insight-box p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.insight-update-button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  font-size: 1rem;
+  background-color: #313f74;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.insight-update-button:hover {
+  background-color: #314582;
+}
+
+/* Graph Card */
+.graph-card {
+  background: #fff;
+  margin: 20px auto;
+  max-width: 800px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 15px;
+  transition: transform 0.3s ease;
+}
+
+.graph-card:hover {
+  transform: translateY(-3px);
+}
+
+.graph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.graph-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.local-range-selector button {
+  padding: 4px 8px;
+  margin-left: 5px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background 0.3s ease;
+}
+
+.local-range-selector button.active {
+  background: #4caf50;
+  color: #fff;
+  border-color: #4caf50;
+}
+
+/* Tooltip styling override */
+.recharts-default-tooltip {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
