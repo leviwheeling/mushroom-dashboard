@@ -1,18 +1,18 @@
-from openai import OpenAI
-
-def get_api_key():
-    try:
-        with open('key.txt', 'r') as f:
-            return f.read().strip()
-    except FileNotFoundError:
-        raise Exception("key.txt not found. Please create it from key.template.txt")
-
-client = OpenAI(api_key=get_api_key())
+import sys
+from app_config import get_openai_client
 
 try:
-    models = client.models.list()
+    CLIENT = get_openai_client()
+    models = CLIENT.models.list()
     print("Available models:")
     for model in models:
         print(model.id)
+except FileNotFoundError as e:
+    print(f"❌ ERROR: {e}")
+    sys.exit(1)
+except ValueError as e:
+    print(f"❌ ERROR: {e}")
+    sys.exit(1)
 except Exception as e:
-    print(f"Error: {e}")
+    print(f"❌ ERROR: An unexpected error occurred: {e}")
+    sys.exit(1)

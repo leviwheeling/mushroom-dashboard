@@ -1,45 +1,39 @@
-import os
-from openai import OpenAI
-from sensor_handler import read_sensor_data
+import sys
+from app_config import get_openai_client
+from sensor_handler import get_latest_sensor_data_and_history
 
-# Load API Key
-def load_api_key():
-    try:
-        with open("key.txt", "r") as file:
-            key = file.read().strip()
-            if not key:
-                raise ValueError("API key is empty. Please ensure 'key.txt' contains a valid key.")
-            return key
-    except FileNotFoundError:
-        print("❌ ERROR: 'key.txt' not found! Please create it and add your OpenAI API key.")
-        exit(1)
-    except Exception as e:
-        print(f"❌ ERROR: Unable to read 'key.txt': {str(e)}")
-        exit(1)
-
-# Initialize OpenAI client
-api_key = load_api_key()
-client = OpenAI(api_key=api_key)
+# --- Configuration and Setup ---
+try:
+    CLIENT = get_openai_client()
+except FileNotFoundError as e:
+    print(f"❌ ERROR: {e}")
+    sys.exit(1)
+except ValueError as e:
+    print(f"❌ ERROR: {e}")
+    sys.exit(1)
+except Exception as e: # Catch any other exception from app_config.load_api_key
+    print(f"❌ ERROR: An unexpected error occurred during setup: {e}")
+    sys.exit(1)
 
 # OpenAI Assistant ID
-ASSISTANT_ID = "asst_GOHjtf7WMJMji6d5VEjxwuDY"
+ASSISTANT_ID = "asst_GOHjtf7WMJMji6d5VEjxwuDY" # 🔒 Keep this or manage it via config too
 
 # Start a new conversation
 def start_conversation():
     """Creates a new AI conversation thread."""
-    return client.beta.threads.create().id
+    return CLIENT.beta.threads.create().id
 
 # Send messages to AI
 def send_message(thread_id, user_message):
     """Sends a message to OpenAI and returns the response."""
     try:
-        client.beta.threads.messages.create(
+        CLIENT.beta.threads.messages.create(
             thread_id=thread_id, role="user", content=user_message
         )
-        run = client.beta.threads.runs.create_and_poll(
+        run = CLIENT.beta.threads.runs.create_and_poll(
             thread_id=thread_id, assistant_id=ASSISTANT_ID
         )
-        messages = client.beta.threads.messages.list(thread_id=thread_id)
+        messages = CLIENT.beta.threads.messages.list(thread_id=thread_id)
         return messages.data[0].content[0].text.value
     except Exception as e:
         return f"Error communicating with AI: {str(e)}"
@@ -47,8 +41,10 @@ def send_message(thread_id, user_message):
 # Create immersive mushroom dialogue
 def generate_mushroom_prompt(sensor_data, history_data):
     """Formats a mushroom AI prompt using both current and past sensor data."""
+    # Keys for sensor_data were already correct: timestamp, humidity, CO2, temperature.
+    # Updating keys for history_data processing:
     history_text = "\n".join(
-        [f"- {entry['Date']}: CO₂ {entry['CO2 (ppm)']} ppm, Humidity {entry['RH (%)']}%, Temp {entry['Temperature (F)']}°F"
+        [f"- {entry['timestamp']}: CO₂ {entry['CO2']} ppm, Humidity {entry['humidity']}%, Temp {entry['temperature']}°F"
          for entry in history_data[:10]]  # Limit to last 10 entries
     )
 
@@ -77,8 +73,8 @@ def main():
     thread_id = start_conversation()
 
     # Get sensor data
-    sensor_data, history_data = read_sensor_data()
-    if not sensor_data or not history_data:
+    sensor_data, history_data = get_latest_sensor_data_and_history()
+    if not sensor_data or not history_data: # This check remains valid
         print("❌ ERROR: No sensor data available. Exiting.")
         return
 

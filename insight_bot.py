@@ -1,18 +1,12 @@
-import os
 import json
-from openai import OpenAI
-from sensor_handler import read_sensor_data
+import sys # For sys.exit in the main block
+from app_config import get_openai_client
+from sensor_handler import get_latest_sensor_data_and_history, initialize_history as initialize_sensor_history
 
-# Read API key from file
-def get_api_key():
-    try:
-        with open('key.txt', 'r') as f:
-            return f.read().strip()
-    except FileNotFoundError:
-        raise Exception("key.txt not found. Please create it from key.template.txt")
-
-api_key = get_api_key()
-client = OpenAI(api_key=api_key)
+# Initialize OpenAI client via app_config
+# Let exceptions from get_openai_client propagate if this module is imported.
+# The main block below will handle them for direct execution.
+CLIENT = None # Initialize to None, will be set in the main block or by importer
 
 # Set the Insight Bot assistant ID (your insight bot)
 INSIGHT_ASSISTANT_ID = "asst_0MNEOfvkS0W29towhYCUXqZS"
@@ -21,26 +15,34 @@ INSIGHT_ASSISTANT_ID = "asst_0MNEOfvkS0W29towhYCUXqZS"
 INSIGHT_THREAD_ID = None
 LAST_INSIGHT_TIMESTAMP = None
 
+def initialize_client():
+    """Initializes the OpenAI client."""
+    global CLIENT
+    if CLIENT is None:
+        CLIENT = get_openai_client()
+
 def start_conversation():
     """Creates a new Thread for the Insight Bot and stores its thread ID."""
     global INSIGHT_THREAD_ID
-    thread = client.beta.threads.create()
+    initialize_client() # Ensure client is initialized
+    thread = CLIENT.beta.threads.create()
     INSIGHT_THREAD_ID = thread.id
     return INSIGHT_THREAD_ID
 
 def send_message(thread_id, user_message):
     """Sends a message to the Insight Bot and retrieves its response."""
+    initialize_client() # Ensure client is initialized
     try:
-        client.beta.threads.messages.create(
+        CLIENT.beta.threads.messages.create(
             thread_id=thread_id,
             role="user",
             content=user_message
         )
-        run = client.beta.threads.runs.create_and_poll(
+        run = CLIENT.beta.threads.runs.create_and_poll(
             thread_id=thread_id,
             assistant_id=INSIGHT_ASSISTANT_ID
         )
-        messages = client.beta.threads.messages.list(thread_id=thread_id)
+        messages = CLIENT.beta.threads.messages.list(thread_id=thread_id)
         return messages.data[0].content[0].text.value  # Extract the reply.
     except Exception as e:
         return f"Error generating AI response: {str(e)}"
@@ -81,7 +83,19 @@ def get_insight():
     """
     global INSIGHT_THREAD_ID, LAST_INSIGHT_TIMESTAMP
 
-    latest, history = read_sensor_data()
+    # Retrieve data without generating a new point
+    latest, history = get_latest_sensor_data_and_history() 
+    
+    if not latest: # If no data, cannot generate insight
+        return {
+            "error": "Sensor data unavailable",
+            "details": "Could not retrieve sensor data to generate insight.",
+            "original_response": None,
+            "historicalSummary": "Sensor data unavailable.",
+            "currentReading": "Sensor data unavailable.",
+            "insight": "Insight generation failed due to missing sensor data."
+        }
+
     if LAST_INSIGHT_TIMESTAMP is None:
         new_history = history
     else:
@@ -111,24 +125,46 @@ def get_insight():
         start_conversation()
 
     response_str = send_message(INSIGHT_THREAD_ID, prompt)
+    
+    error_response_template = {
+        "error": "AI response processing failed",
+        "original_response": response_str[:200] + "..." if response_str else "N/A", # Snippet
+        "historicalSummary": "Error processing data.",
+        "currentReading": "Error processing data.",
+        "insight": "Error generating insight. Please check application logs or try again later."
+    }
+
     try:
         response_json = json.loads(response_str)
         if all(k in response_json for k in ["historicalSummary", "currentReading", "insight"]):
             return response_json
         else:
-            return {
-                "historicalSummary": "",
-                "currentReading": "",
-                "insight": response_str
-            }
-    except Exception as e:
-        return {
-            "historicalSummary": "",
-            "currentReading": "",
-            "insight": response_str
-        }
+            error_response_template["details"] = "Missing expected keys in AI response."
+            return error_response_template
+    except json.JSONDecodeError as e:
+        error_response_template["details"] = f"Could not parse JSON response from AI: {e}"
+        return error_response_template
+    except Exception as e: # Catch any other unexpected error during processing
+        error_response_template["details"] = f"An unexpected error occurred while processing AI response: {e}"
+        return error_response_template
 
 if __name__ == "__main__":
+    try:
+        # Initialize OpenAI client
+        initialize_client() 
+        # Initialize sensor history for standalone execution
+        initialize_sensor_history()
+    except FileNotFoundError as e:
+        print(f"❌ ERROR (Setup): {e}")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"❌ ERROR (Setup): {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ ERROR (Setup): An unexpected error occurred during setup: {e}")
+        sys.exit(1)
+    
+    print("Generating insight for standalone test...")
     insight = get_insight()
-    print("Insight Bot output:")
-    print(insight)
+    print("\nInsight Bot output:")
+    print(json.dumps(insight, indent=2))

@@ -4,7 +4,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from sensor_handler import read_sensor_data
+from sensor_handler import get_latest_sensor_data_and_history, generate_and_add_new_reading, initialize_history
 from ai_model import start_conversation, send_message
 from insight_bot import get_insight
 
@@ -32,9 +32,9 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
-            sensor_data, _ = read_sensor_data()
-            if sensor_data:
-                await websocket.send_text(json.dumps(sensor_data, default=numpy_encoder))
+            new_sensor_data = generate_and_add_new_reading() # Get new data and add to history
+            if new_sensor_data:
+                await websocket.send_text(json.dumps(new_sensor_data, default=numpy_encoder))
             await asyncio.sleep(5)
     except WebSocketDisconnect:
         print("Client disconnected from sensor data WebSocket")
@@ -45,12 +45,19 @@ async def chat_endpoint(request: Request):
     user_message = payload.get("message")
     if not user_message:
         return {"error": "Message is required."}
-    sensor_context = (
-        f"Sensor Data Context: Current reading - Temperature: {read_sensor_data()[0]['temperature']}°F, "
-        f"Humidity: {read_sensor_data()[0]['humidity']}%, CO2: {read_sensor_data()[0]['CO2']} ppm. "
-        f"Historical data includes {len(read_sensor_data()[1])} readings. "
-        "Ignore the sensor data when generating your response, but keep it in consideration for overall trends."
-    )
+
+    current_sensor_data, history_data = get_latest_sensor_data_and_history()
+    
+    if current_sensor_data and history_data:
+        sensor_context = (
+            f"Sensor Data Context: Current reading - Temperature: {current_sensor_data['temperature']}°F, "
+            f"Humidity: {current_sensor_data['humidity']}%, CO2: {current_sensor_data['CO2']} ppm. "
+            f"Historical data includes {len(history_data)} readings. "
+            "Consider this data for context on current conditions and overall trends but generate your primary response based on the user's message."
+        )
+    else:
+        sensor_context = "Sensor Data Context: Not currently available. Please respond based on the user's message alone."
+
     full_message = f"{sensor_context}\nUser: {user_message}"
     thread_id = payload.get("thread_id")
     if not thread_id:
@@ -60,7 +67,7 @@ async def chat_endpoint(request: Request):
 
 @app.get("/history")
 async def get_history():
-    _, history_data = read_sensor_data()
+    _, history_data = get_latest_sensor_data_and_history()
     if history_data:
         return history_data
     return []
@@ -85,6 +92,7 @@ async def update_insight_periodically():
 
 @app.on_event("startup")
 async def startup_event():
+    initialize_history()  # Populate sensor history at startup
     asyncio.create_task(update_insight_periodically())
 
 if __name__ == "__main__":
