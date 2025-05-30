@@ -1,35 +1,73 @@
 /* Global Styles */
 .App {
-  font-family:  Rockwell, 'Rockwell Nova', 'Roboto Slab', 'DejaVu Serif', 'Sitka Small', serif;
-  background: #f7f7f7;
+  /* font-family is inherited from body (index.css) */
+  background-color: #121212; /* Base dark background */
+  color: #E0E0E0; /* Default light text */
   min-height: 100vh;
   padding: 20px;
+  box-sizing: border-box;
 }
 
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px; /* Increased spacing */
+  padding-bottom: 20px;
+  border-bottom: 1px solid #333333; /* Subtle separator */
 }
 
 .app-header h1 {
-  color: #333;
+  color: #FFFFFF; /* Brighter for header */
   margin: 0;
+  font-size: 2rem; /* Larger title */
+}
+.app-header h1 span { /* For potential orange accent in title */
+  color: #FFA500; 
 }
 
+
+.zone-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.zone-selector-container label {
+  font-size: 1rem;
+  color: #E0E0E0;
+}
+
+#zone-select {
+  background-color: #282828;
+  color: #E0E0E0;
+  border: 1px solid #333333;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+#zone-select:focus {
+  border-color: #FFA500;
+  box-shadow: 0 0 0 2px rgba(255, 165, 0, 0.3);
+}
+
+
 .chat-toggle-button {
-  padding: 8px 16px;
-  background-color: #271b7e;
-  color: #fff;
+  padding: 10px 20px; /* Increased padding */
+  background-color: #FFA500; /* Orange accent */
+  color: #121212; /* Dark text on orange */
   border: none;
-  border-radius: 4px;
+  border-radius: 6px; /* Slightly more rounded */
   cursor: pointer;
-  transition: background 0.3s ease;
+  font-weight: bold;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .chat-toggle-button:hover {
-  background-color: #213b6f;
+  background-color: #FF8C00; /* Darker orange on hover */
+  transform: translateY(-2px);
 }
 
 /* Dashboard Layout */
@@ -39,156 +77,205 @@
 
 .dashboard.with-chat {
   display: flex;
-  gap: 20px;
+  gap: 20px; /* Spacing between chat and content */
 }
 
 .chat-panel {
-  flex: 1;
-  max-width: 50%;
+  flex: 0 0 350px; /* Fixed width for chat panel */
+  background-color: #1E1E1E; /* Slightly lighter dark */
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* Removed box-shadow, relying on background contrast */
+  padding: 15px;
 }
 
 .content-panel {
-  flex: 1;
-  width: 100%;
+  flex: 1; /* Takes remaining space */
+  /* No specific background, inherits from .App or can be set if needed */
 }
 
 /* Sensor Cards */
 .sensor-cards {
-  display: flex;
-  justify-content: center;
+  display: grid; /* Using grid for better alignment */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Responsive columns */
   gap: 20px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+  margin-bottom: 30px;
 }
 
 .sensor-card {
-  padding: 15px;
+  background-color: #1E1E1E; /* Dark card background */
+  color: #E0E0E0;
+  padding: 20px;
   border-radius: 8px;
-  min-width: 120px;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.7s ease, background 0.7s ease;
+  border: 1px solid #333333; /* Subtle border */
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
 }
 
 .sensor-card:hover {
   transform: translateY(-5px);
+  border-color: #FFA500; /* Orange border on hover */
+  box-shadow: 0 4px 15px rgba(255, 165, 0, 0.1); /* Subtle orange glow */
 }
 
-.sensor-card.temp {
-  background: #e3f2fd;
-  color: #a1520d;
+.sensor-card h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+  color: #FFFFFF; /* Brighter title for cards */
 }
 
-.sensor-card.humidity {
-  background: #e8f5e9;
-  color: #1b1d5e;
+.sensor-card p {
+  font-size: 1.8rem; /* Larger sensor value */
+  font-weight: bold;
+  color: #FFA500; /* Orange for the value */
+  margin: 0;
 }
 
+/* Remove old specific sensor card styles */
+.sensor-card.temp,
+.sensor-card.humidity,
 .sensor-card.co2 {
-  background: #ffebee;
-  color: #1cb726;
+  background: #1E1E1E; /* Unified background */
+  color: #E0E0E0;      /* Unified text color */
 }
+
 
 /* Insight Section */
 .insight-container {
-  background: #fff;
-  padding: 20px;
-  margin: 20px auto 0 auto;
-  max-width: 600px;
+  background-color: #1E1E1E; /* Dark background for container */
+  color: #E0E0E0;
+  padding: 25px;
+  margin: 30px auto 0 auto; /* Increased top margin */
+  max-width: 700px; /* Slightly wider */
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  text-align: left;
+  border: 1px solid #333333;
 }
 
 .insight-container h2 {
-  margin-bottom: 10px;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  color: #FFFFFF;
+  text-align: center;
 }
 
 .insight-box {
-  background: #a09b9b;
-  margin-bottom: 10px;
-  padding: 10px;
+  background-color: #282828; /* Slightly different dark for boxes */
+  margin-bottom: 15px;
+  padding: 15px;
   border-radius: 6px;
+  border-left: 3px solid #FFA500; /* Orange accent line */
 }
 
 .insight-box h3 {
-  margin: 0 0 5px 0;
-  font-size: 1rem;
-  color: #333;
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  color: #FFA500; /* Orange for titles */
 }
 
 .insight-box p {
   margin: 0;
   font-size: 0.95rem;
-  line-height: 1.4;
+  line-height: 1.6; /* Improved line height */
 }
 
 .insight-update-button {
-  margin-top: 10px;
-  padding: 8px 16px;
+  margin-top: 20px;
+  padding: 12px 24px; /* Larger button */
   font-size: 1rem;
-  background-color: #313f74;
-  color: #fff;
+  background-color: #FFA500; /* Orange accent */
+  color: #121212; /* Dark text */
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.3s ease;
+  font-weight: bold;
+  display: block; /* Center button */
+  margin-left: auto;
+  margin-right: auto;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .insight-update-button:hover {
-  background-color: #314582;
+  background-color: #FF8C00; /* Darker orange */
+  transform: translateY(-2px);
+}
+
+.insight-update-button:disabled {
+  background-color: #555;
+  color: #aaa;
+  cursor: not-allowed;
 }
 
 /* Graph Card */
 .graph-card {
-  background: #fff;
-  margin: 20px auto;
-  max-width: 800px;
+  background-color: #1E1E1E; /* Dark background */
+  color: #E0E0E0;
+  margin: 30px auto; /* Increased top/bottom margin */
+  max-width: 900px; /* Wider graphs */
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  padding: 15px;
-  transition: transform 0.3s ease;
+  border: 1px solid #333333;
+  padding: 20px;
+  transition: transform 0.3s ease, border-color 0.3s ease;
 }
 
 .graph-card:hover {
   transform: translateY(-3px);
+  border-color: #FFA500; /* Orange border on hover */
 }
 
 .graph-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 20px; /* Increased spacing */
 }
 
 .graph-header h3 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  color: #FFFFFF;
 }
 
 .local-range-selector button {
-  padding: 4px 8px;
-  margin-left: 5px;
-  border: 1px solid #ccc;
-  background: #fff;
+  padding: 6px 12px; /* Adjusted padding */
+  margin-left: 8px; /* Increased margin */
+  border: 1px solid #333333;
+  background-color: #282828; /* Dark background for buttons */
+  color: #E0E0E0; /* Light text */
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.9rem;
-  transition: background 0.3s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.local-range-selector button:hover {
+  border-color: #FFA500;
+  color: #FFA500;
 }
 
 .local-range-selector button.active {
-  background: #4caf50;
-  color: #fff;
-  border-color: #4caf50;
+  background-color: #FFA500; /* Orange for active */
+  color: #121212; /* Dark text */
+  border-color: #FFA500; /* Orange border */
 }
 
 /* Tooltip styling override */
 .recharts-default-tooltip {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  background-color: #282828 !important; /* Dark tooltip background */
+  border: 1px solid #FFA500 !important; /* Orange border */
+  border-radius: 6px !important;
+  color: #E0E0E0 !important; /* Light text in tooltip */
+}
+
+.recharts-tooltip-label {
+  color: #FFFFFF !important; /* Brighter label in tooltip */
+}
+
+/* Graph line/axis colors - these are often set in JS, but good to have fallbacks */
+.recharts-cartesian-axis-tick-value, .recharts-legend-item-text {
+  fill: #AAAAAA !important; /* Lighter gray for axis text */
+}
+.recharts-cartesian-grid-horizontal line, .recharts-cartesian-grid-vertical line {
+  stroke: #333333 !important; /* Darker grid lines */
 }

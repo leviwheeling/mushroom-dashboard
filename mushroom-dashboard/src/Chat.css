@@ -1,153 +1,189 @@
-/* Basic container styles */
+/* Chat Container - Integrated with App.js .chat-panel styling */
 .chat-container {
-    background: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    max-width: 600px;
-    margin: 20px auto;
+    background-color: #1E1E1E; /* Matches .chat-panel from App.css */
+    color: #E0E0E0;
     display: flex;
     flex-direction: column;
-    height: 400px;
-    transition: all 0.3s ease;
-    overflow: hidden;
-  }
+    height: 100%; /* Fill the .chat-panel */
+    border-radius: 8px; /* Consistent with .chat-panel */
+    overflow: hidden; /* Ensure content respects border radius */
+    transition: all 0.3s ease; /* For fullscreen */
+}
   
-  /* Fullscreen styles: overlay over entire viewport */
-  .chat-container.fullscreen {
+/* Fullscreen styles: overlay over entire viewport */
+.chat-container.fullscreen {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100vh;
+    width: 100vw; /* Use viewport units */
+    height: 100vh; /* Use viewport units */
     margin: 0;
     border-radius: 0;
-    z-index: 1000;
-  }
+    z-index: 1000; /* Ensure it's on top */
+    background-color: #121212; /* Main app dark background for fullscreen */
+}
   
-  /* Header styles */
-  .chat-header {
-    background: #233683;
-    color: #fff;
-    padding: 10px 15px;
+/* Header styles */
+.chat-header {
+    background-color: #282828; /* Slightly darker than chat container */
+    color: #FFFFFF; /* Bright text for header */
+    padding: 12px 15px; /* Adjusted padding */
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
+    border-bottom: 1px solid #333333; /* Separator line */
+}
   
-  .chat-header h2 {
+.chat-header h2 {
     margin: 0;
     font-size: 1.2rem;
-  }
+}
   
-  .fullscreen-toggle {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: #fff;
-    padding: 5px 10px;
+.fullscreen-toggle {
+    background: transparent;
+    border: 1px solid #555555;
+    color: #E0E0E0;
+    padding: 6px 10px;
     cursor: pointer;
-    border-radius: 4px;
-    transition: background 0.3s ease;
-  }
+    border-radius: 6px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
   
-  .fullscreen-toggle:hover {
-    background: rgba(255, 255, 255, 0.4);
-  }
+.fullscreen-toggle:hover {
+    background-color: #333333;
+    border-color: #FFA500;
+}
   
-  /* Chat history styles */
-  .chat-history {
+/* Chat history styles */
+.chat-history {
     flex: 1;
     padding: 15px;
     overflow-y: auto;
-    background: #f7f7f7;
-  }
+    background-color: #1E1E1E; /* Same as chat-container */
+    display: flex;
+    flex-direction: column;
+}
   
-  .chat-bubble {
-    max-width: 80%;
-    margin-bottom: 10px;
+.chat-bubble {
+    max-width: 85%; /* Slightly more width */
+    margin-bottom: 12px; /* Increased spacing */
     padding: 10px 15px;
-    border-radius: 20px;
-    font-size: 1rem;
-    line-height: 1.4;
-    opacity: 0;
+    border-radius: 18px; /* Slightly adjusted radius */
+    font-size: 0.95rem; /* Adjusted font size */
+    line-height: 1.5;
+    opacity: 0; /* For fade-in animation */
     animation: fadeIn 0.3s forwards;
-  }
+    word-wrap: break-word; /* Ensure long words break */
+}
   
-  .chat-bubble.user {
-    background: #202f81;
-    color: #fff;
+.chat-bubble.user {
+    background-color: #FFA500; /* Orange accent for user bubbles */
+    color: #121212; /* Dark text on orange */
     margin-left: auto;
-    border-bottom-right-radius: 0;
-  }
+    border-bottom-right-radius: 5px; /* Tail effect */
+}
   
-  .chat-bubble.ai {
-    background: #e0e0e0;
-    color: #333;
+.chat-bubble.ai {
+    background-color: #2B2B2B; /* Darker gray for AI */
+    color: #E0E0E0;
     margin-right: auto;
-    border-bottom-left-radius: 0;
-  }
+    border-bottom-left-radius: 5px; /* Tail effect */
+}
   
-  @keyframes fadeIn {
+@keyframes fadeIn {
     to {
       opacity: 1;
     }
-  }
+}
   
-  /* Typing indicator */
-  .chat-bubble.ai.typing {
+/* Typing indicator */
+.chat-bubble.ai.typing {
     background: transparent;
-    font-style: italic;
-    color: #6f8598;
+    padding: 10px 15px; /* Ensure it aligns with normal bubbles */
     display: flex;
     align-items: center;
-  }
+}
   
-  .dot {
+.dot {
     width: 8px;
     height: 8px;
-    margin: 0 2px;
-    background: #bbb;
+    margin: 0 3px; /* Slightly more spacing */
+    background-color: #FFA500; /* Orange dots */
     border-radius: 50%;
     animation: blink 1.4s infinite both;
-  }
+}
   
-  @keyframes blink {
-    0% { opacity: 0.2; }
-    20% { opacity: 1; }
-    100% { opacity: 0.2; }
-  }
+.dot:nth-child(1) { animation-delay: 0s; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blink {
+    0%, 100% { opacity: 0.3; transform: scale(0.7); }
+    40% { opacity: 1; transform: scale(1); }
+}
   
-  /* Input area */
-  .chat-input {
+/* Input area */
+.chat-input {
     display: flex;
-    padding: 10px;
-    border-top: 1px solid #ddd;
-    background: #fff;
-  }
+    align-items: center; /* Align items vertically */
+    padding: 12px;
+    border-top: 1px solid #333333; /* Separator line */
+    background-color: #282828; /* Match header background */
+}
   
-  .chat-input textarea {
+.chat-input textarea {
     flex: 1;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 8px;
+    border: 1px solid #444444; /* Darker border */
+    background-color: #1E1E1E; /* Dark background for textarea */
+    color: #E0E0E0; /* Light text */
+    border-radius: 6px;
+    padding: 10px;
     resize: none;
-    font-size: 1rem;
-  }
+    font-size: 0.95rem;
+    outline: none; /* Remove default outline */
+    transition: border-color 0.2s ease;
+}
+
+.chat-input textarea:focus {
+    border-color: #FFA500; /* Orange border on focus */
+}
   
-  .chat-button {
-    background: #283481;
-    color: #fff;
+.chat-button {
+    background-color: #FFA500; /* Orange accent for button */
+    color: #121212; /* Dark text on orange */
     border: none;
     margin-left: 10px;
-    padding: 10px 15px;
-    border-radius: 4px;
+    padding: 10px 20px; /* More padding */
+    border-radius: 6px;
     cursor: pointer;
-    transition: background 0.3s ease, transform 0.1s ease;
-  }
+    font-weight: bold;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
   
-  .chat-button:hover {
-    background: #273287;
-  }
+.chat-button:hover {
+    background-color: #FF8C00; /* Darker orange on hover */
+}
   
-  .chat-button:active {
-    transform: scale(0.95);
-  }
+.chat-button:active {
+    transform: scale(0.97); /* Subtle active state */
+}
+
+/* Scrollbar styling for chat history (Webkit browsers) */
+.chat-history::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+    background: #1E1E1E; /* Background of the scrollbar track */
+    border-radius: 10px;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+    background-color: #555555; /* Color of the scrollbar thumb */
+    border-radius: 10px;
+    border: 2px solid #1E1E1E; /* Creates padding around thumb */
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover {
+    background-color: #FFA500; /* Orange thumb on hover */
+}

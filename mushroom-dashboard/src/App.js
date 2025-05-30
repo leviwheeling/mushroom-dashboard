@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   LineChart,
   Line,
@@ -15,6 +15,8 @@ const WEBSOCKET_URL = "ws://localhost:8000/ws";
 const HISTORY_URL = "http://localhost:8000/history";
 const INSIGHT_URL = "http://localhost:8000/insight";
 const RUN_INSIGHT_URL = "http://localhost:8000/run_insight";
+
+const ZONE_NAMES = ["Babylon 1", "Babylon 2", "Mine", "Tent 1", "Tent 2", "Bear Mountain"];
 
 // Reusable GraphCard component.
 const GraphCard = ({ title, dataKey, data }) => {
@@ -72,10 +74,10 @@ const GraphCard = ({ title, dataKey, data }) => {
 
   const strokeColor =
     dataKey === "temperature"
-      ? "#f44336"
+      ? "#FFA500" // Orange
       : dataKey === "humidity"
-      ? "#2196f3"
-      : "#4caf50";
+      ? "#79D8F7" // Light Cyan
+      : "#AEEA00"; // Light Lime Green
 
   return (
     <div className="graph-card">
@@ -152,7 +154,9 @@ const typeWriter = (fullText, delay, callback) => {
 };
 
 const App = () => {
-  const [sensorData, setSensorData] = useState([]);
+  const [allZoneData, setAllZoneData] = useState({});
+  const [selectedZone, setSelectedZone] = useState(ZONE_NAMES[0]);
+  const [sensorData, setSensorData] = useState([]); // History for selectedZone
   const [insight, setInsight] = useState({
     historicalSummary: "",
     currentReading: "",
@@ -166,12 +170,37 @@ const App = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isInsightUpdating, setIsInsightUpdating] = useState(false);
 
-  useEffect(() => {
-    fetch(HISTORY_URL)
+  const fetchHistory = useCallback(() => {
+    fetch(`${HISTORY_URL}?zone_name=${selectedZone}`)
       .then((res) => res.json())
-      .then((data) => setSensorData(data))
+      .then((data) => {
+        if (data.history) {
+          setSensorData(data.history);
+        } else {
+          setSensorData([]); // Or handle as an error
+        }
+      })
       .catch((err) => console.error("Error fetching history:", err));
-  }, []);
+  }, [selectedZone]);
+
+  const fetchInsight = useCallback(() => {
+    fetch(`${INSIGHT_URL}?zone_name=${selectedZone}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.insight) {
+          setInsight(data.insight);
+        } else {
+          // Potentially reset insight or handle error
+          setInsight({ historicalSummary: "", currentReading: "", insight: "" });
+        }
+      })
+      .catch((err) => console.error("Error fetching insight:", err));
+  }, [selectedZone]);
+
+  useEffect(() => {
+    fetchHistory();
+    fetchInsight();
+  }, [selectedZone, fetchHistory, fetchInsight]);
 
   useEffect(() => {
     const ws = new WebSocket(WEBSOCKET_URL);
@@ -179,14 +208,29 @@ const App = () => {
       console.log("✅ WebSocket connected.");
     };
     ws.onmessage = (event) => {
-      const newData = JSON.parse(event.data);
-      const parsedData = {
-        ...newData,
-        temperature: Number(newData.temperature),
-        humidity: Number(newData.humidity),
-        CO2: Number(newData.CO2)
-      };
-      setSensorData((prevData) => [...prevData, parsedData]);
+      const receivedDataArray = JSON.parse(event.data); // Expects array of sensor data objects
+      
+      const newAllZoneData = {};
+      let selectedZoneDataFromMessage = null;
+
+      receivedDataArray.forEach(item => {
+        const parsedItem = {
+          ...item,
+          temperature: Number(item.temperature),
+          humidity: Number(item.humidity),
+          CO2: Number(item.CO2)
+        };
+        newAllZoneData[item.zone_name] = parsedItem;
+        if (item.zone_name === selectedZone) {
+          selectedZoneDataFromMessage = parsedItem;
+        }
+      });
+
+      setAllZoneData(prevAllZoneData => ({...prevAllZoneData, ...newAllZoneData}));
+
+      if (selectedZoneDataFromMessage) {
+        setSensorData((prevData) => [...prevData, selectedZoneDataFromMessage]);
+      }
     };
     ws.onerror = (error) => {
       console.error("❌ WebSocket error:", error);
@@ -203,39 +247,42 @@ const App = () => {
       clearInterval(pingInterval);
       if (ws.readyState === WebSocket.OPEN) ws.close();
     };
-  }, []);
-
-  useEffect(() => {
-    fetch(INSIGHT_URL)
-      .then((res) => res.json())
-      .then((data) => setInsight(data.insight))
-      .catch((err) => console.error("Error fetching insight:", err));
-  }, []);
+  }, [selectedZone]); // Added selectedZone as dependency
 
   const updateInsightManual = () => {
     setIsInsightUpdating(true);
-    fetch(RUN_INSIGHT_URL)
+    fetch(`${RUN_INSIGHT_URL}?zone_name=${selectedZone}`)
       .then((res) => res.json())
       .then((data) => {
-        const newInsight = data.insight;
-        Promise.all([
-          typeWriter(newInsight.historicalSummary || "", 60, (txt) =>
-            setInsight((prev) => ({ ...prev, historicalSummary: txt }))
-          ),
-          typeWriter(newInsight.currentReading || "", 65, (txt) =>
-            setInsight((prev) => ({ ...prev, currentReading: txt }))
-          ),
-          typeWriter(newInsight.insight || "", 25, (txt) =>
-            setInsight((prev) => ({ ...prev, insight: txt }))
-          )
-        ]).then(() => {
+        if (data.insight) {
+          const newInsight = data.insight;
+          Promise.all([
+            typeWriter(newInsight.historicalSummary || "", 60, (txt) =>
+              setInsight((prev) => ({ ...prev, historicalSummary: txt }))
+            ),
+            typeWriter(newInsight.currentReading || "", 65, (txt) =>
+              setInsight((prev) => ({ ...prev, currentReading: txt }))
+            ),
+            typeWriter(newInsight.insight || "", 25, (txt) =>
+              setInsight((prev) => ({ ...prev, insight: txt }))
+            )
+          ]).then(() => {
+            setIsInsightUpdating(false);
+          });
+        } else {
+          // Handle case where insight is not in response
+          setInsight({ historicalSummary: "Error fetching insight.", currentReading: "", insight: "" });
           setIsInsightUpdating(false);
-        });
+        }
       })
       .catch((err) => {
         console.error("Error updating insight manually:", err);
         setIsInsightUpdating(false);
       });
+  };
+
+  const handleZoneChange = (event) => {
+    setSelectedZone(event.target.value);
   };
 
   const toggleGraph = (variable) => {
@@ -246,10 +293,20 @@ const App = () => {
     setIsChatOpen(!isChatOpen);
   };
 
+  const currentZoneData = allZoneData[selectedZone] || {};
+
   return (
     <div className="App">
       <header className="app-header">
-        <h1>🍄 Mushroom Environment Monitor</h1>
+        <h1>🍄 <span>Mushroom</span> Environment Monitor</h1>
+        <div className="zone-selector-container">
+          <label htmlFor="zone-select">Select Zone: </label>
+          <select id="zone-select" value={selectedZone} onChange={handleZoneChange}>
+            {ZONE_NAMES.map(zoneName => (
+              <option key={zoneName} value={zoneName}>{zoneName}</option>
+            ))}
+          </select>
+        </div>
         <button className="chat-toggle-button" onClick={toggleChatPanel}>
           {isChatOpen ? "Hide Chat" : "Open Chat"}
         </button>
@@ -257,22 +314,22 @@ const App = () => {
       <div className={`dashboard ${isChatOpen ? "with-chat" : ""}`}>
         {isChatOpen && (
           <div className="chat-panel">
-            <Chat />
+            <Chat selectedZone={selectedZone} />
           </div>
         )}
         <div className="content-panel">
           <div className="sensor-cards">
             <div className="sensor-card temp" onClick={() => toggleGraph("temperature")}>
               <h3>Temperature</h3>
-              {sensorData.length > 0 && <p>{sensorData[sensorData.length - 1].temperature}°F</p>}
+              <p>{currentZoneData.temperature !== undefined ? `${currentZoneData.temperature}°F` : "Loading..."}</p>
             </div>
             <div className="sensor-card humidity" onClick={() => toggleGraph("humidity")}>
               <h3>Humidity</h3>
-              {sensorData.length > 0 && <p>{sensorData[sensorData.length - 1].humidity}%</p>}
+              <p>{currentZoneData.humidity !== undefined ? `${currentZoneData.humidity}%` : "Loading..."}</p>
             </div>
             <div className="sensor-card co2" onClick={() => toggleGraph("CO2")}>
               <h3>CO₂ Levels</h3>
-              {sensorData.length > 0 && <p>{sensorData[sensorData.length - 1].CO2} ppm</p>}
+              <p>{currentZoneData.CO2 !== undefined ? `${currentZoneData.CO2} ppm` : "Loading..."}</p>
             </div>
           </div>
           {openGraphs.temperature && (

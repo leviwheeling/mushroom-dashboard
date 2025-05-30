@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./Chat.css";
 
-const Chat = () => {
+const Chat = (props) => { // Accept props
   const [threadId, setThreadId] = useState(null);
   const [userMessage, setUserMessage] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
@@ -17,10 +17,15 @@ const Chat = () => {
 
     setIsTyping(true);
     try {
+      const requestBody = {
+        thread_id: threadId,
+        message: messageToSend,
+        zone_name: props.selectedZone // Add selectedZone to the request body
+      };
       const response = await fetch("http://localhost:8000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ thread_id: threadId, message: messageToSend })
+        body: JSON.stringify(requestBody)
       });
       const data = await response.json();
       if (!threadId && data.thread_id) {
