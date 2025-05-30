@@ -1,134 +1,128 @@
-import os
 import json
-from openai import OpenAI
-from sensor_handler import read_sensor_data
+from datetime import datetime 
+from sensor_handler import read_sensor_data, ZONE_NAMES 
+from ai_model import start_conversation as start_ai_conversation, send_message as send_ai_message
 
-# Read API key from file
-def get_api_key():
-    try:
-        with open('key.txt', 'r') as f:
-            return f.read().strip()
-    except FileNotFoundError:
-        raise Exception("key.txt not found. Please create it from key.template.txt")
+LAST_INSIGHT_TIMESTAMP = {} 
 
-api_key = get_api_key()
-client = OpenAI(api_key=api_key)
-
-# Set the Insight Bot assistant ID (your insight bot)
-INSIGHT_ASSISTANT_ID = "asst_0MNEOfvkS0W29towhYCUXqZS"
-
-# Global variables to maintain conversation thread and track the last insight timestamp.
-INSIGHT_THREAD_ID = None
-LAST_INSIGHT_TIMESTAMP = None
-
-def start_conversation():
-    """Creates a new Thread for the Insight Bot and stores its thread ID."""
-    global INSIGHT_THREAD_ID
-    thread = client.beta.threads.create()
-    INSIGHT_THREAD_ID = thread.id
-    return INSIGHT_THREAD_ID
-
-def send_message(thread_id, user_message):
-    """Sends a message to the Insight Bot and retrieves its response."""
-    try:
-        client.beta.threads.messages.create(
-            thread_id=thread_id,
-            role="user",
-            content=user_message
-        )
-        run = client.beta.threads.runs.create_and_poll(
-            thread_id=thread_id,
-            assistant_id=INSIGHT_ASSISTANT_ID
-        )
-        messages = client.beta.threads.messages.list(thread_id=thread_id)
-        return messages.data[0].content[0].text.value  # Extract the reply.
-    except Exception as e:
-        return f"Error generating AI response: {str(e)}"
-
-def compute_summary(history):
-    """
-    Computes summary statistics (min, max, average) for Temperature, Humidity, and CO₂.
-    """
-    temps = [entry["temperature"] for entry in history if entry["temperature"] is not None]
-    hums  = [entry["humidity"] for entry in history if entry["humidity"] is not None]
-    co2s  = [entry["CO2"] for entry in history if entry["CO2"] is not None]
+def compute_summary(history: list): 
+    temps = [entry["temperature"] for entry in history if "temperature" in entry and entry["temperature"] is not None]
+    hums  = [entry["humidity"] for entry in history if "humidity" in entry and entry["humidity"] is not None]
+    co2s  = [entry["CO2"] for entry in history if "CO2" in entry and entry["CO2"] is not None]
     
     summary = {
         "temperature": {
             "min": min(temps) if temps else None,
             "max": max(temps) if temps else None,
-            "avg": round(sum(temps) / len(temps), 2) if temps else None,
+            "avg": round(sum(temps) / len(temps), 1) if temps else None, # Adjusted to 1 decimal
         },
         "humidity": {
             "min": min(hums) if hums else None,
             "max": max(hums) if hums else None,
-            "avg": round(sum(hums) / len(hums), 2) if hums else None,
+            "avg": round(sum(hums) / len(hums), 1) if hums else None, # Adjusted to 1 decimal
         },
         "CO2": {
             "min": min(co2s) if co2s else None,
             "max": max(co2s) if co2s else None,
-            "avg": round(sum(co2s) / len(co2s), 2) if co2s else None,
+            "avg": round(sum(co2s) / len(co2s), 0) if co2s else None, # CO2 as whole number
         }
     }
     return summary
 
-def get_insight():
-    """
-    Retrieves current sensor data and historical readings, then uses only new entries (since the last insight)
-    to compute summary statistics. Constructs a prompt that instructs the Insight Bot to output a JSON object with exactly
-    three keys: "historicalSummary", "currentReading", and "insight". The response must be concise (no more than six sentences),
-    flag any anomalies with ⚠️, and end with one fun fact about mushrooms.
-    """
-    global INSIGHT_THREAD_ID, LAST_INSIGHT_TIMESTAMP
+def get_insight(zone_name: str):
+    global LAST_INSIGHT_TIMESTAMP 
 
-    latest, history = read_sensor_data()
-    if LAST_INSIGHT_TIMESTAMP is None:
-        new_history = history
+    if zone_name not in ZONE_NAMES:
+        return {"error": f"Invalid zone_name: '{zone_name}'. Must be one of {ZONE_NAMES}"}
+
+    try:
+        latest, history = read_sensor_data(zone_name=zone_name)
+    except ValueError as e: 
+        return {"error": f"Could not read sensor data for zone '{zone_name}': {e}"}
+    except Exception as e:
+        return {"error": f"Unexpected error reading sensor data for zone '{zone_name}': {e}"}
+
+    last_ts_for_zone = LAST_INSIGHT_TIMESTAMP.get(zone_name)
+    new_history_for_summary = []
+
+    if last_ts_for_zone is None:
+        new_history_for_summary = history 
     else:
-        new_history = [entry for entry in history if entry["timestamp"] > LAST_INSIGHT_TIMESTAMP]
+        try:
+            last_dt = datetime.strptime(last_ts_for_zone, "%Y-%m-%d %H:%M:%S")
+            new_history_for_summary = [entry for entry in history if datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S") > last_dt]
+        except (ValueError, TypeError) as e: 
+            print(f"Warning: Timestamp comparison error for zone {zone_name} (last_ts: {last_ts_for_zone}): {e}. Using full history.")
+            new_history_for_summary = history
 
-    LAST_INSIGHT_TIMESTAMP = latest["timestamp"]
-    summary = compute_summary(new_history)
+    if not new_history_for_summary and history: 
+        print(f"No new sensor data for zone {zone_name} since {last_ts_for_zone}. Summarizing last day's worth of available entries.")
+        # Approx last day if 5 min intervals (288 readings)
+        new_history_for_summary = history[-288:] 
+    elif not new_history_for_summary and not history:
+         print(f"No history available at all for zone {zone_name} to generate summary.")
+         # Return a structure indicating no data, so AI doesn't get empty fields
+         summary = {"temperature": {}, "humidity": {}, "CO2": {}} # Empty summary
+    else: # This case was missing, should be 'summary = compute_summary(new_history_for_summary)'
+        summary = compute_summary(new_history_for_summary)
+
+
+    LAST_INSIGHT_TIMESTAMP[zone_name] = latest["timestamp"] 
+
+    temp_summary_str = f"Temperature: min {summary['temperature'].get('min','N/A')}°F, max {summary['temperature'].get('max','N/A')}°F, avg {summary['temperature'].get('avg','N/A')}°F"
+    hum_summary_str = f"Humidity: min {summary['humidity'].get('min','N/A')}%, max {summary['humidity'].get('max','N/A')}%, avg {summary['humidity'].get('avg','N/A')}%"
+    co2_summary_str = f"CO2: min {summary['CO2'].get('min','N/A')} ppm, max {summary['CO2'].get('max','N/A')} ppm, avg {summary['CO2'].get('avg','N/A')} ppm"
+    
+    current_reading_str = f"Temperature: {latest.get('temperature','N/A')}°F, Humidity: {latest.get('humidity','N/A')}%, CO2: {latest.get('CO2','N/A')} ppm"
 
     prompt = (
-        "Using the provided sensor data, produce a JSON object with exactly three keys: "
-        "'historicalSummary', 'currentReading', and 'insight'. "
-        "The 'historicalSummary' should concisely summarize the past week's data, for example: "
-        "'Temperature: min " + str(summary['temperature']['min']) + "°F, max " + str(summary['temperature']['max']) +
-        "°F, average " + str(summary['temperature']['avg']) + "°F; Humidity: min " + str(summary['humidity']['min']) +
-        "%, max " + str(summary['humidity']['max']) + "%, average " + str(summary['humidity']['avg']) +
-        "%; CO2: min " + str(summary['CO2']['min']) + " ppm, max " + str(summary['CO2']['max']) + " ppm, average " +
-        str(summary['CO2']['avg']) + " ppm.' "
-        "The 'currentReading' should report the latest sensor reading as: "
-        "'Temperature: " + str(latest['temperature']) + "°F, Humidity: " + str(latest['humidity']) +
-        "%, CO2: " + str(latest['CO2']) + " ppm.' "
-        "Finally, the 'insight' key should contain a brief, insightful analysis (maximum six sentences) that compares the historical trends with the current reading, "
-        "emphasizes that current conditions are optimal for mushroom growth, flags any discrepancies with the warning symbol (⚠️) if detected, and ends with one fun fact about mushrooms. "
-        "Output only the JSON object without any additional text."
-    )
+        f"You are an AI assistant for a mushroom farm, providing insights for Zone: '{zone_name}'.\n"
+        "Based on the following data, produce a JSON object with exactly three keys: "
+        "\"historicalSummary\", \"currentReading\", and \"insight\".\n" # Escaped quotes for JSON string
+        "1. \"historicalSummary\": Concisely summarize the provided historical data.\n"
+        f"   Historical data summary to use: {temp_summary_str}; {hum_summary_str}; {co2_summary_str}.\n"
+        "2. \"currentReading\": Report the latest sensor reading.\n"
+        f"   Current reading to use: {current_reading_str}.\n"
+        "3. \"insight\": Provide a brief (max six sentences) analysis comparing historical trends with the current reading for this zone. "
+        "Flag anomalies (e.g., readings outside typical ranges, or significant deviations from average) with EMOJI_WARNING. " # Placeholder for emoji
+        "Conclude with one fun fact about mushrooms or mushroom cultivation. "
+        "Output only the JSON object without any additional text or explanations."
+    ).replace("EMOJI_WARNING", "⚠️") # Replace placeholder with actual emoji
 
-    if INSIGHT_THREAD_ID is None:
-        start_conversation()
-
-    response_str = send_message(INSIGHT_THREAD_ID, prompt)
+    insight_thread_id = start_ai_conversation() 
+    
+    print(f"\nGenerating insight for zone: {zone_name} (Thread: {insight_thread_id})")
+    
+    response_str = send_ai_message(thread_id=insight_thread_id, user_message=prompt, zone_name=zone_name)
+    
     try:
         response_json = json.loads(response_str)
-        if all(k in response_json for k in ["historicalSummary", "currentReading", "insight"]):
+        if isinstance(response_json, dict) and all(k in response_json for k in ["historicalSummary", "currentReading", "insight"]):
             return response_json
         else:
-            return {
-                "historicalSummary": "",
-                "currentReading": "",
-                "insight": response_str
-            }
+            print(f"Warning: AI response for zone {zone_name} was valid JSON but not the expected structure. Response: {response_str}")
+            return {"error": "AI response format incorrect.", "raw_response": response_str}
+    except json.JSONDecodeError:
+        print(f"Warning: AI response for zone {zone_name} was not valid JSON. Response: {response_str}")
+        return {"error": "AI response was not valid JSON.", "raw_response": response_str}
     except Exception as e:
-        return {
-            "historicalSummary": "",
-            "currentReading": "",
-            "insight": response_str
-        }
+        print(f"Error processing AI response for zone {zone_name}: {e}. Raw response: {response_str}")
+        return {"error": f"Unexpected error processing AI response: {e}", "raw_response": response_str}
 
 if __name__ == "__main__":
-    insight = get_insight()
-    print("Insight Bot output:")
-    print(insight)
+    print("--- Insight Bot Demonstration (Ollama & RAG - Multi-Zone) ---")
+    example_zone = "Babylon 1" 
+    if example_zone not in ZONE_NAMES:
+        print(f"Error: '{example_zone}' is not a valid zone. Please choose from: {ZONE_NAMES}")
+    else:
+        insight_data = get_insight(zone_name=example_zone)
+        print(f"\nInsight for Zone '{example_zone}':")
+        print(json.dumps(insight_data, indent=2))
+
+    example_zone_2 = "Mine"
+    if example_zone_2 not in ZONE_NAMES:
+        print(f"Error: '{example_zone_2}' is not a valid zone. Please choose from: {ZONE_NAMES}")
+    else:
+        insight_data_2 = get_insight(zone_name=example_zone_2)
+        print(f"\nInsight for Zone '{example_zone_2}':")
+        print(json.dumps(insight_data_2, indent=2))

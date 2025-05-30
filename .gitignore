@@ -45,3 +45,7 @@ Thumbs.db
 # Project specific
 key.txt
 data.txt 
+
+# Generated data and logs
+conversation_history/
+chroma_db_data/
