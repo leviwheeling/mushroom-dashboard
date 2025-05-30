@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./Chat.css";
 
-const Chat = () => {
+const Chat = ({ currentZone }) => {
   const [threadId, setThreadId] = useState(null);
   const [userMessage, setUserMessage] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
@@ -10,6 +10,13 @@ const Chat = () => {
 
   const sendChat = async () => {
     if (!userMessage.trim()) return;
+
+    if (!currentZone) {
+      console.error("Zone not selected for chat. Message not sent.");
+      setChatHistory((prev) => [...prev, { sender: "system", message: "Error: No zone selected. Cannot send message." }]);
+      return;
+    }
+
     const messageToSend = userMessage; // Preserve the message before clearing
     // Add user message to the history
     setChatHistory((prev) => [...prev, { sender: "user", message: messageToSend }]);
@@ -20,7 +27,7 @@ const Chat = () => {
       const response = await fetch("http://localhost:8000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ thread_id: threadId, message: messageToSend })
+        body: JSON.stringify({ thread_id: threadId, message: messageToSend, zone_name: currentZone })
       });
       const data = await response.json();
       if (!threadId && data.thread_id) {

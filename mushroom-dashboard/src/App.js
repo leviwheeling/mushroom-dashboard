@@ -152,6 +152,7 @@ const typeWriter = (fullText, delay, callback) => {
 };
 
 const App = () => {
+  const [currentZone, setCurrentZone] = useState("Babylon 1");
   const [sensorData, setSensorData] = useState([]);
   const [insight, setInsight] = useState({
     historicalSummary: "",
@@ -167,11 +168,11 @@ const App = () => {
   const [isInsightUpdating, setIsInsightUpdating] = useState(false);
 
   useEffect(() => {
-    fetch(HISTORY_URL)
+    fetch(`${HISTORY_URL}?zone_name=${encodeURIComponent(currentZone)}`)
       .then((res) => res.json())
       .then((data) => setSensorData(data))
       .catch((err) => console.error("Error fetching history:", err));
-  }, []);
+  }, [currentZone]);
 
   useEffect(() => {
     const ws = new WebSocket(WEBSOCKET_URL);
@@ -206,15 +207,15 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    fetch(INSIGHT_URL)
+    fetch(`${RUN_INSIGHT_URL}?zone_name=${encodeURIComponent(currentZone)}`)
       .then((res) => res.json())
       .then((data) => setInsight(data.insight))
       .catch((err) => console.error("Error fetching insight:", err));
-  }, []);
+  }, [currentZone]);
 
   const updateInsightManual = () => {
     setIsInsightUpdating(true);
-    fetch(RUN_INSIGHT_URL)
+    fetch(`${RUN_INSIGHT_URL}?zone_name=${encodeURIComponent(currentZone)}`)
       .then((res) => res.json())
       .then((data) => {
         const newInsight = data.insight;
@@ -257,7 +258,7 @@ const App = () => {
       <div className={`dashboard ${isChatOpen ? "with-chat" : ""}`}>
         {isChatOpen && (
           <div className="chat-panel">
-            <Chat />
+            <Chat currentZone={currentZone} />
           </div>
         )}
         <div className="content-panel">

@@ -1,5 +1,0 @@
-# OpenAI API Key Template
-# Copy this file to key.txt and replace with your actual API key
-# key.txt is gitignored to prevent accidental commits of sensitive data
-
-OPENAI_API_KEY=your_api_key_here 

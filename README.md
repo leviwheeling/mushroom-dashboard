@@ -28,13 +28,8 @@ source env/bin/activate  # On Windows: env\Scripts\activate
 
 2. Install Python dependencies:
 ```bash
-pip install fastapi uvicorn websockets numpy pandas openai
+pip install fastapi uvicorn websockets numpy pandas
 ```
-
-3. Set up your OpenAI API key:
-   - Copy `key.template.txt` to `key.txt`
-   - Replace the placeholder with your actual OpenAI API key
-   - Note: `key.txt` is gitignored for security
 
 ### Frontend Setup
 
